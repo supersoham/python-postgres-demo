@@ -5,22 +5,20 @@ import pytest
 
 from app import app
 
-
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 @pytest.fixture
 def client_with_clean_database():
     """Use a dedicated test database and clear its visits before each test."""
-    with psycopg.connect(DATABASE_URL) as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
+    with psycopg.connect(DATABASE_URL) as conn, conn.cursor() as cur:
+        cur.execute("""
                 CREATE TABLE IF NOT EXISTS visits (
                     id SERIAL PRIMARY KEY,
                     visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 )
             """)
-            cur.execute("TRUNCATE TABLE visits RESTART IDENTITY")
+        cur.execute("TRUNCATE TABLE visits RESTART IDENTITY")
 
     yield app.test_client()
 

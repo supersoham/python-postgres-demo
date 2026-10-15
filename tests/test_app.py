@@ -7,6 +7,8 @@ os.environ.setdefault(
     "postgresql://appuser:devpass@localhost:5432/appdb",
 )
 
+from datetime import UTC
+
 from app import app
 
 
@@ -17,9 +19,7 @@ def test_home_endpoint():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.get_json() == {
-        "message": "Python API is running!"
-    }
+    assert response.get_json() == {"message": "Python API is running!"}
 
 
 def test_health_endpoint():
@@ -42,10 +42,12 @@ def test_health_endpoint():
         "database": "connected",
     }
 
+
 def test_health_endpoint_database_failure():
     """The health endpoint should return 503 when the database is unavailable."""
-    import psycopg
     from unittest.mock import patch
+
+    import psycopg
 
     client = app.test_client()
 
@@ -61,9 +63,10 @@ def test_health_endpoint_database_failure():
         "database": "unavailable",
     }
 
+
 def test_create_visit():
     """POST /visits should create a visit and return its ID and timestamp."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     client = app.test_client()
     connection = MagicMock()
@@ -72,7 +75,7 @@ def test_create_visit():
     connection.__enter__.return_value = connection
     connection.cursor.return_value.__enter__.return_value = cursor
 
-    visited_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    visited_at = datetime(2026, 1, 1, tzinfo=UTC)
     cursor.fetchone.return_value = (42, visited_at)
 
     with patch("app.get_connection", return_value=connection):
@@ -89,7 +92,7 @@ def test_create_visit():
 
 def test_list_visits():
     """GET /visits should return visits ordered by ID."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     client = app.test_client()
     connection = MagicMock()
@@ -98,8 +101,8 @@ def test_list_visits():
     connection.__enter__.return_value = connection
     connection.cursor.return_value.__enter__.return_value = cursor
 
-    first_visit = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    second_visit = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    first_visit = datetime(2026, 1, 1, tzinfo=UTC)
+    second_visit = datetime(2026, 1, 2, tzinfo=UTC)
 
     cursor.fetchall.return_value = [
         (1, first_visit),
