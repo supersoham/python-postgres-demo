@@ -41,3 +41,22 @@ def test_health_endpoint():
         "status": "ok",
         "database": "connected",
     }
+
+def test_health_endpoint_database_failure():
+    """The health endpoint should return 503 when the database is unavailable."""
+    import psycopg
+    from unittest.mock import patch
+
+    client = app.test_client()
+
+    with patch(
+        "app.psycopg.connect",
+        side_effect=psycopg.OperationalError("Database unavailable"),
+    ):
+        response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.get_json() == {
+        "status": "error",
+        "database": "unavailable",
+    }
