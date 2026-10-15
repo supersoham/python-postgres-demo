@@ -8,6 +8,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: appdb_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U appuser -d appdb_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://appuser:testpass@localhost:5432/appdb_test
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -22,7 +40,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run tests
-        env:
-          DATABASE_URL: postgresql://appuser:devpass@localhost:5432/appdb
-        run: python -m pytest -v
+      - name: Run unit tests
+        run: python -m pytest -v tests/test_app.py
+
+      - name: Run PostgreSQL integration tests
+        run: python -m pytest -v tests/test_integration.py
