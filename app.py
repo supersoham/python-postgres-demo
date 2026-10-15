@@ -1,5 +1,4 @@
 import os
-import time
 
 import psycopg
 from flask import Flask, jsonify
@@ -21,50 +20,42 @@ def home():
 @app.get("/health")
 def health():
     try:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                cur.fetchone()
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
         return jsonify(status="ok", database="connected")
-    except Exception:
+    except psycopg.Error:
         return jsonify(status="error", database="unavailable"), 503
 
 
 @app.post("/visits")
 def add_visit():
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("""
                 CREATE TABLE IF NOT EXISTS visits (
                     id SERIAL PRIMARY KEY,
                     visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 )
             """)
-            cur.execute(
-                "INSERT INTO visits DEFAULT VALUES RETURNING id, visited_at"
-            )
-            visit_id, visited_at = cur.fetchone()
+        cur.execute("INSERT INTO visits DEFAULT VALUES RETURNING id, visited_at")
+        visit_id, visited_at = cur.fetchone()
 
     return jsonify(id=visit_id, visited_at=visited_at.isoformat()), 201
 
 
 @app.get("/visits")
 def list_visits():
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("""
                 CREATE TABLE IF NOT EXISTS visits (
                     id SERIAL PRIMARY KEY,
                     visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 )
             """)
-            cur.execute("SELECT id, visited_at FROM visits ORDER BY id")
-            rows = cur.fetchall()
+        cur.execute("SELECT id, visited_at FROM visits ORDER BY id")
+        rows = cur.fetchall()
 
-    return jsonify([
-        {"id": row[0], "visited_at": row[1].isoformat()}
-        for row in rows
-    ])
+    return jsonify([{"id": row[0], "visited_at": row[1].isoformat()} for row in rows])
 
 
 if __name__ == "__main__":
