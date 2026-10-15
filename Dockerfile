@@ -1,4 +1,3 @@
-
 FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -6,19 +5,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Create a dedicated, unprivileged application user.
 RUN groupadd --system app \
     && useradd --system --gid app --home-dir /app app
 
-# Install dependencies while building the image.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt
 
-# Copy the application with ownership assigned to the app user.
 COPY --chown=app:app app.py .
 
 USER app
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
